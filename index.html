@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Service Worker Generator</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+  h1 { font-size: 24px; }
+  button { font-size: 16px; padding: 10px 15px; margin-top: 15px; }
+  textarea { width: 100%; height: 300px; margin-top: 15px; font-family: monospace; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>Service Worker Generator</h1>
+<p>Select a folder with your project files to generate a service worker.</p>
+<button id="pickFolderBtn">Pick Folder</button>
+<pre id="fileList"></pre>
+<textarea id="swCode" readonly placeholder="Service Worker code will appear here..."></textarea>
+<script>
+  const pickFolderBtn = document.getElementById('pickFolderBtn');
+  const fileListEl = document.getElementById('fileList');
+  const swCodeEl = document.getElementById('swCode');
+
+  pickFolderBtn.addEventListener('click', async () => {
+    try {
+      const dirHandle = await window.showDirectoryPicker();
+      fileListEl.textContent = 'Scanning files...';
+      swCodeEl.value = '';
+
+      const files = [];
+
+      async function traverseDir(handle, path='') {
+        for await (const entry of handle.values()) {
+          if(entry.kind === 'file') {
+            files.push(path + '/' + entry.name);
+          } else if(entry.kind === 'directory') {
+            await traverseDir(entry, path + '/' + entry.name);
+          }
+        }
+      }
+
+      await traverseDir(dirHandle, '');
+
+      fileListEl.textContent = files.join('\n');
+
+      // Generate service worker code
+      const cacheName = 'my-site-cache-v1';
+      const cacheFiles = files.map(f => `'${f.slice(1)}'`).join(',\n  ');
+
+      const swCode = `
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open('${cacheName}').then(cache => {
+      return cache.addAll([
+  ${cacheFiles}
+      ]);
+    })
+  );
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
+    })
+  );
+});
+`;
+
+      swCodeEl.value = swCode;
+    } catch (error) {
+      fileListEl.textContent = 'Error: ' + error.message;
+      swCodeEl.value = '';
+    }
+  });
+</script>
+</body>
+</html>
