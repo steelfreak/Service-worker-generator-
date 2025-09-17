@@ -43,6 +43,30 @@ Add this script to your `index.html` (or main HTML file) to register the service
 
 Make sure the path in `register('/sw.js')` matches the location of your service worker file.
 
+
+
+Here is how you can do it:
+
+Add this script inside your index.html file, usually near the end of the <body> section or inside the <head>:
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch(error => {
+          console.error('Service Worker registration failed:', error);
+        });
+    });
+  } else {
+    console.log('Service Workers are not supported in this browser.');
+  }
+</script>
+
+
+
 ## Requirements
 
 - A modern browser that supports the File System Access API (e.g., Chrome, Edge).
